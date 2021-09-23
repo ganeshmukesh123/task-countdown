@@ -114,6 +114,7 @@ function CountDown() {
         DOM.submit.on('click',function(ev){
             ev.preventDefault();
             var valuesFromForm = THIS.getValuesFromForm();
+            if(!countDownObj) countDownObj = [];
             countDownObj.push(valuesFromForm);
             THIS.updateToLocalData(valuesFromForm);
             THIS.makeCountDown(valuesFromForm);
