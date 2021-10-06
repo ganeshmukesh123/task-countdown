@@ -36,17 +36,42 @@ function TimeDate() {
     THIS.getRandomArbitrary = function (min, max) {
         return Math.floor(Math.random() * (max - min + 1) + min);
     }
-    THIS.getQoutesPos = function () {
-        return THIS.getRandomArbitrary(0, qoutes.length)
+    THIS.getQoutesPos = function (range) {
+        return THIS.getRandomArbitrary(0, range)
+    }
+    THIS.loadQuotes = function(){
+        fetch('./js/quotes.json')
+        .then((response) => {
+            // console.log(response);
+             return response.json()
+        })
+        .then((data) => {
+            // Work with JSON data here
+            // console.log(data)
+            THIS.setQoutesInDom(data)
+        })
+        .catch((err) => {
+            // Do something for an error here
+        })
+    }
+    THIS.setQoutesInDom = function(data){
+        
+        var pos = THIS.getQoutesPos(data.length);
+        // console.log(" pos "+pos);
+        // console.log(qoutes[pos].content);
+        // console.log(qoutes[pos].author);
+        if(!!pos && !!data[pos]){
+            DOM.content.textContent = data[pos].content;
+            DOM.author.textContent = data[pos].author;
+        }
     }
     THIS.renderQoutes = function () {
-        var pos = THIS.getQoutesPos();
-        DOM.content.textContent = qoutes[pos].content;
-        DOM.author.textContent = qoutes[pos].author;
+        THIS.loadQuotes();
+        
     }
 
     THIS.refreshQoutes = function () {
-        DOM.refresh.addEventListener('click', function (e) {
+        DOM.refresh.addEventListener('click', function (e) {    
             e.preventDefault();
             THIS.renderQoutes();
         })
@@ -73,7 +98,8 @@ function CountDown() {
             timedate:$("#timedate"),
             submit:$("#submit"),
             sampele:$('#countdown-sample'),
-            countdownlist:$('#countdown-list')
+            countdownlist:$('#countdown-list'),
+            datetimepicker:$('#datetimepicker1')
         },
         CLASS = {
             btnDisabled: 'disable-cm',
@@ -84,13 +110,23 @@ function CountDown() {
             title:'countdown-title'
         },
         CountDownList = "countdownList",
-        countDownObj =[] ;
+        countDownObj =[] ,
+        STATE = {
+            errorMsg: {
+                title: 'Enter goal title',
+                date: 'please select date',
+            }
+        };
 
     THIS.uuidv4 = function() {
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
             var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
             return v.toString(16);
         });
+    }
+    THIS.trackEmptyFields = function () {
+        DOM.title.on('input', function () { THIS.EnableBtnFunc() });
+        DOM.datetimepicker.on('dp.change', function() { THIS.EnableBtnFunc() });
     }
     THIS.EnableOverlay = function(){
         DOM.add.on('click',function(){
@@ -122,13 +158,22 @@ function CountDown() {
         });
     }
 
-    THIS.updateToLocalData = function(data){
-            var prevData = THIS.getLocalData(CountDownList);
-            if(prevData == null) prevData = [];
-            prevData.push(data);
-
-            THIS.setLocalData(CountDownList,prevData);
+    THIS.EnableBtnFunc = function (ev) {
+        try {
+            // THIS.removeErrorField();
+            if (THIS.checkEmptyField()) DOM.submit.removeClass(CLASS.btnDisabled);
+            else DOM.submit.addClass(CLASS.btnDisabled);
+        } catch (error) {
+            console.log(error);
+        }
     }
+
+    THIS.checkEmptyField = function(){
+        var _title = DOM.title.val().trim(),_timedate = DOM.timedate.val().trim();
+        return !!_title && !!_timedate;
+    }
+
+    
     THIS.getValuesFromForm = function () {
         var formData = {},
             _title = DOM.title.val().trim(),
@@ -143,6 +188,14 @@ function CountDown() {
         console.log(formData);
         return formData;
     }
+    
+    THIS.updateToLocalData = function(data){
+            var prevData = THIS.getLocalData(CountDownList);
+            if(prevData == null) prevData = [];
+            prevData.push(data);
+
+            THIS.setLocalData(CountDownList,prevData);
+    }
 
     THIS.getLocalData = function(label){
         return JSON.parse(localStorage.getItem(label));
@@ -152,6 +205,9 @@ function CountDown() {
     }
     THIS.setLocalObj = function(){
         countDownObj = THIS.getLocalData(CountDownList);
+        if(countDownObj == null){
+            countDownObj = [];
+        }
     }
     THIS.getLocalObj = function(){
         return countDownObj;
@@ -217,12 +273,27 @@ function CountDown() {
         THIS.setLocalObj();
         THIS.initCountDown();
     }
+    THIS.initDate = function(){
+        DOM.datetimepicker.datetimepicker({
+            dayViewHeaderFormat: 'MMMM YYYY' ,
+            keepInvalid:true,
+            minDate: moment()
+        });
+        $('#datetimepicker1 input').on('focus',function() {
+            $('#datetimepicker1').data("DateTimePicker").show();
+        });
+        // $("#datetimepicker1").on("dp.change", function(e) {
+        //     alert('hey');
+        // });
+    }
 
 
 
 
     return {
         init : function(){
+            THIS.initDate();
+            THIS.trackEmptyFields();
             THIS.EnableOverlay();
             THIS.SubmitForm();
             THIS.initalRender();
@@ -234,14 +305,7 @@ function CountDown() {
     document.addEventListener('DOMContentLoaded', function () {
         try {
 
-            $('#datetimepicker1').datetimepicker({
-                dayViewHeaderFormat: 'MMMM YYYY' ,
-                keepInvalid:true,
-                minDate: moment()
-            });
-            $('#datetimepicker1 input').on('focus',function() {
-                $('#datetimepicker1').data("DateTimePicker").show();
-            });
+            
             var timeDate = new TimeDate();
             timeDate.init();
             var countDown = new CountDown();
